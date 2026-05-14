@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { readFileSync } from 'fs'
+import path from 'path'
 import nodemailer from 'nodemailer'
 import { getSupabaseAdminClient } from '@/lib/supabase'
 
@@ -65,31 +67,60 @@ export async function POST(req: NextRequest) {
       },
     })
 
+    const inlineAttachments: { filename: string; content: Buffer; contentType: string; cid: string }[] = []
+    let bgCid: string | null = null
+    try {
+      const bgPath = path.join(process.cwd(), 'public', 'images', 'bg_bike.jpg')
+      const bgBuffer = readFileSync(bgPath)
+      bgCid = 'bg-bike@kuntoraportti'
+      inlineAttachments.push({
+        filename: 'bg_bike.jpg',
+        content: bgBuffer,
+        contentType: 'image/jpeg',
+        cid: bgCid,
+      })
+    } catch {
+      // ohitetaan
+    }
+
+    const bgUrl = bgCid ? `cid:${bgCid}` : ''
+    const bgAttr = bgUrl ? ` background="${bgUrl}"` : ''
+    const bodyBg = bgUrl
+      ? `background:#0a0a0a url('${bgUrl}') center center / cover no-repeat fixed`
+      : 'background:#0a0a0a'
+    const wrapperBg = bgUrl
+      ? `background:#0a0a0a url('${bgUrl}') center center / cover no-repeat`
+      : 'background:#0a0a0a'
+
     const html = `
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#050505;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
-  <div style="max-width:600px;margin:0 auto;background:#111111;color:#f3f4f6">
-    <div style="background:#0a0a0a;padding:24px;border-bottom:3px solid #f97316;text-align:center">
-      <h1 style="color:#ffffff;font-size:22px;font-weight:800;margin:0 0 4px">Kuntoraportti (uudelleenlähetys)</h1>
-      <p style="color:#6b7280;font-size:13px;margin:0">MP-Logistiikka · Moottoripyörän tarkastusraportti</p>
-    </div>
+<body style="margin:0;padding:0;${bodyBg};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"${bgAttr} style="${wrapperBg}">
+    <tr><td align="center" style="padding:0">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background:rgba(10,10,10,0.78);color:#f3f4f6">
+        <tr><td style="background:rgba(17,17,17,0.85);padding:24px;border-bottom:3px solid #f97316;text-align:center">
+          <h1 style="color:#f3f4f6;font-size:22px;font-weight:800;margin:0 0 4px;letter-spacing:-0.3px">Kuntoraportti (uudelleenlähetys)</h1>
+          <p style="color:#9ca3af;font-size:13px;margin:0">MP-Logistiikka · Moottoripyörän tarkastusraportti</p>
+        </td></tr>
 
-    <div style="padding:20px 24px">
-      <p style="margin:0 0 12px">Hei ${data.customer_name || 'asiakas'},</p>
-      <p style="margin:0 0 14px">Kuntoraportti pyörälle ${data.bike_make || ''} ${data.bike_model || ''} (${data.bike_reg || '—'}) on lähetetty uudelleen.</p>
-      <p style="margin:0 0 14px">Tarkastuksen tulos: <strong>${statusLabel[data.overall_status || 'warn']}</strong></p>
-      <p style="margin:0 0 14px">Km-lukema: ${data.bike_km || '—'}</p>
-      <p style="margin:0 0 14px">Tarkastaja: ${data.inspector || 'MP-Logistiikka'}</p>
-      ${data.overall_notes ? `<p style="margin:0 0 14px">Huomiot: ${data.overall_notes.replace(/\n/g, '<br>')}</p>` : ''}
-      ${(data.photo_urls || []).length > 0 ? `<p style="margin:0 0 14px">Kuvat:</p><ul>${(data.photo_urls || []).map((url) => `<li><a href="${url}" style="color:#f97316">${url}</a></li>`).join('')}</ul>` : ''}
-    </div>
+        <tr><td style="padding:20px 24px;background:rgba(26,26,26,0.6);color:#e5e7eb;font-size:14px;line-height:1.6">
+          <p style="margin:0 0 12px">Hei ${data.customer_name || 'asiakas'},</p>
+          <p style="margin:0 0 14px">Kuntoraportti pyörälle ${data.bike_make || ''} ${data.bike_model || ''} (${data.bike_reg || '—'}) on lähetetty uudelleen.</p>
+          <p style="margin:0 0 14px">Tarkastuksen tulos: <strong style="color:#f97316">${statusLabel[data.overall_status || 'warn']}</strong></p>
+          <p style="margin:0 0 14px">Km-lukema: ${data.bike_km || '—'}</p>
+          <p style="margin:0 0 14px">Tarkastaja: ${data.inspector || 'MP-Logistiikka'}</p>
+          ${data.overall_notes ? `<p style="margin:0 0 14px">Huomiot: ${data.overall_notes.replace(/\n/g, '<br>')}</p>` : ''}
+          ${(data.photo_urls || []).length > 0 ? `<p style="margin:0 0 14px">Kuvat:</p><ul style="margin:0;padding-left:20px">${(data.photo_urls || []).map((url) => `<li style="margin-bottom:4px"><a href="${url}" style="color:#f97316;word-break:break-all">${url}</a></li>`).join('')}</ul>` : ''}
+        </td></tr>
 
-    <div style="background:#0a0a0a;padding:20px 24px;text-align:center;border-top:1px solid #1e1e1e">
-      <p style="color:#6b7280;font-size:12px;margin:0">MP-Logistiikka · info@mplogistiikka.fi</p>
-    </div>
-  </div>
+        <tr><td style="background:rgba(17,17,17,0.85);padding:20px 24px;text-align:center;border-top:1px solid #1e1e1e">
+          <p style="color:#9ca3af;font-size:12px;margin:0">MP-Logistiikka · info@mplogistiikka.fi</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
 </body>
 </html>`
 
@@ -99,6 +130,7 @@ export async function POST(req: NextRequest) {
       cc: process.env.SMTP_USER,
       subject: `Kuntoraportti (uudelleenlähetys) – ${data.bike_make || ''} ${data.bike_model || ''} (${data.bike_reg || ''})`,
       html,
+      attachments: inlineAttachments,
     })
 
     const waText = encodeURIComponent(

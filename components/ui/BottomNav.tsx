@@ -28,29 +28,21 @@ const navItems = [
 export default function BottomNav() {
   const pathname = usePathname()
   return (
-    <nav style={{
-      position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
-      width: '100%', maxWidth: '480px',
-      background: '#0a0a0a',
-      borderTop: '1px solid #2d2d2d',
-      display: 'grid', gridTemplateColumns: 'repeat(4,1fr)',
-      paddingBottom: 'env(safe-area-inset-bottom, 8px)',
-      zIndex: 100,
-    }}>
+    <nav className="bottom-nav">
       {navItems.map(item => {
         const active = pathname === item.href
         return (
           <Link key={item.href} href={item.href} style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center',
             gap: 3, padding: '10px 0 6px', textDecoration: 'none',
-            color: active ? '#f97316' : '#4b5563',
+            color: active ? '#f97316' : '#9ca3af',
             transition: 'color 0.15s',
           }}>
             {item.special ? (
               <div style={{
                 width: 44, height: 44, background: '#f97316', borderRadius: '50%',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                marginTop: -20, boxShadow: '0 0 0 4px #0a0a0a',
+                marginTop: -20, boxShadow: '0 0 0 4px rgba(17,17,17,0.85)',
               }}>
                 {item.icon}
               </div>

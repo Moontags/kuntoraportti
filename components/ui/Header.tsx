@@ -9,8 +9,10 @@ interface HeaderProps {
 export default function Header({ title, backHref, rightElement }: HeaderProps) {
   return (
     <header style={{
-      background: '#0a0a0a',
-      borderBottom: '1px solid #1e1e1e',
+      background: 'rgba(17,17,17,0.7)',
+      backdropFilter: 'blur(4px)',
+      WebkitBackdropFilter: 'blur(4px)',
+      borderBottom: '1px solid rgba(45,45,45,0.6)',
       padding: '14px 16px',
       display: 'flex',
       alignItems: 'center',

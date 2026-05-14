@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
+import { readFileSync } from 'fs'
+import path from 'path'
 import nodemailer from 'nodemailer'
 import { getSupabaseAdminClient } from '@/lib/supabase'
 
@@ -116,8 +118,25 @@ export async function POST(req: NextRequest) {
     const photoCount = Number(form.get('photoCount') || 0)
 
     // Kerää kuvat liitteiksi
-    const attachments: { filename: string; content: Buffer; contentType: string }[] = []
+    const attachments: { filename: string; content: Buffer; contentType: string; cid?: string }[] = []
     const photos: PhotoInput[] = []
+
+    // Taustakuva inline-liitteenä (CID) — toimii Apple Mailissa, Outlookissa, Thunderbirdissä.
+    // Gmail jättää usein taustakuvat huomiotta, jolloin se näkyy pelkällä tummalla väripohjalla.
+    let bgCid: string | null = null
+    try {
+      const bgPath = path.join(process.cwd(), 'public', 'images', 'bg_bike.jpg')
+      const bgBuffer = readFileSync(bgPath)
+      bgCid = 'bg-bike@kuntoraportti'
+      attachments.push({
+        filename: 'bg_bike.jpg',
+        content: bgBuffer,
+        contentType: 'image/jpeg',
+        cid: bgCid,
+      })
+    } catch {
+      // Taustakuvaa ei löydy — jatketaan ilman.
+    }
     for (let i = 0; i < photoCount; i++) {
       const file = form.get(`photo_${i}`) as File | null
       const caption = form.get(`caption_${i}`) as string || ''
@@ -155,44 +174,55 @@ export async function POST(req: NextRequest) {
 
     const row = (label: string, value: string, highlight = false) => {
       return `<tr>
-        <td style="padding:8px 12px;color:#9ca3af;font-size:13px;width:45%;border-bottom:1px solid #2d2d2d">${label}</td>
-        <td style="padding:8px 12px;color:${highlight ? '#f97316' : '#f3f4f6'};font-size:13px;font-weight:${highlight ? '700' : '400'};border-bottom:1px solid #2d2d2d">${value}</td>
+        <td style="padding:10px 14px;color:#9ca3af;font-size:13px;width:45%;border-bottom:1px solid #2d2d2d;background:rgba(26,26,26,0.6)">${label}</td>
+        <td style="padding:10px 14px;color:${highlight ? '#f97316' : '#f3f4f6'};font-size:13px;font-weight:${highlight ? '700' : '400'};border-bottom:1px solid #2d2d2d;background:rgba(26,26,26,0.6)">${value}</td>
       </tr>`
     }
 
     const section = (title: string, content: string) => {
       return `
-        <tr><td colspan="2" style="padding:16px 12px 8px;background:#0f0f0f">
+        <tr><td colspan="2" style="padding:18px 14px 8px;background:rgba(15,15,15,0.75)">
           <span style="color:#f97316;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase">${title}</span>
         </td></tr>
         ${content}
       `
     }
 
+    const bgUrl = bgCid ? `cid:${bgCid}` : ''
+    const bgAttr = bgUrl ? ` background="${bgUrl}"` : ''
+    const bodyBg = bgUrl
+      ? `background:#0a0a0a url('${bgUrl}') center center / cover no-repeat fixed`
+      : 'background:#0a0a0a'
+    const wrapperBg = bgUrl
+      ? `background:#0a0a0a url('${bgUrl}') center center / cover no-repeat`
+      : 'background:#0a0a0a'
+
     const html = `
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#050505;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
-  <div style="max-width:600px;margin:0 auto;background:#111111">
+<body style="margin:0;padding:0;${bodyBg};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"${bgAttr} style="${wrapperBg}">
+    <tr><td align="center" style="padding:0">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background:rgba(10,10,10,0.78)">
 
-    <!-- Header -->
-    <div style="background:#0a0a0a;padding:24px;border-bottom:3px solid #f97316;text-align:center">
-      <div style="display:inline-block;background:#f97316;width:48px;height:48px;border-radius:12px;line-height:48px;font-size:24px;margin-bottom:12px">🏍️</div>
-      <h1 style="color:#ffffff;font-size:22px;font-weight:800;margin:0 0 4px">Kuntoraportti</h1>
-      <p style="color:#6b7280;font-size:13px;margin:0">MP-Logistiikka · Moottoripyörän tarkastusraportti</p>
-    </div>
+        <!-- Header -->
+        <tr><td style="background:rgba(17,17,17,0.85);padding:24px;border-bottom:3px solid #f97316;text-align:center">
+          <div style="display:inline-block;background:#f97316;width:48px;height:48px;border-radius:12px;line-height:48px;font-size:24px;margin-bottom:12px">🏍️</div>
+          <h1 style="color:#f3f4f6;font-size:22px;font-weight:800;margin:0 0 4px;letter-spacing:-0.3px">Kuntoraportti</h1>
+          <p style="color:#9ca3af;font-size:13px;margin:0">MP-Logistiikka · Moottoripyörän tarkastusraportti</p>
+        </td></tr>
 
-    <!-- Status banner -->
-    <div style="background:${data.overallStatus === 'ok' ? '#14532d' : data.overallStatus === 'warn' ? '#78350f' : '#7f1d1d'};padding:16px 24px;text-align:center">
-      <span style="color:${statusColor[data.overallStatus] || '#fff'};font-size:18px;font-weight:800">${statusLabel[data.overallStatus] || ''}</span>
-    </div>
+        <!-- Status banner -->
+        <tr><td style="background:${data.overallStatus === 'ok' ? '#14532d' : data.overallStatus === 'warn' ? '#78350f' : '#7f1d1d'};padding:16px 24px;text-align:center">
+          <span style="color:${statusColor[data.overallStatus] || '#fff'};font-size:18px;font-weight:800">${statusLabel[data.overallStatus] || ''}</span>
+        </td></tr>
 
-    <!-- Content -->
-    <div style="padding:0">
-      <table style="width:100%;border-collapse:collapse">
+        <!-- Content -->
+        <tr><td style="padding:0">
+          <table style="width:100%;border-collapse:collapse" role="presentation" cellpadding="0" cellspacing="0">
 
-        ${section('Tarkastuksen tiedot', `
+            ${section('Tarkastuksen tiedot', `
           ${row('Päivämäärä', new Date().toLocaleDateString('fi-FI', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' }))}
           ${row('Tarkastaja', data.inspectorSignature || 'MP-Logistiikka')}
           ${row('Tyyppi', data.inspectionType === 'nouto' ? 'Noutotarkastus' : data.inspectionType === 'luovutus' ? 'Luovutustarkastus' : 'Nouto & Luovutus')}
@@ -268,24 +298,28 @@ export async function POST(req: NextRequest) {
           ${data.lightsNotes ? row('Huomiot', data.lightsNotes) : ''}
         `)}
 
-        ${data.overallNotes ? section('Yhteenveto & lisätiedot', `
-          <tr><td colspan="2" style="padding:12px;color:#e5e7eb;font-size:14px;line-height:1.6;border-bottom:1px solid #2d2d2d">${data.overallNotes.replace(/\n/g, '<br>')}</td></tr>
-        `) : ''}
+            ${data.overallNotes ? section('Yhteenveto & lisätiedot', `
+              <tr><td colspan="2" style="padding:14px;color:#e5e7eb;font-size:14px;line-height:1.6;border-bottom:1px solid #2d2d2d;background:rgba(26,26,26,0.6)">${data.overallNotes.replace(/\n/g, '<br>')}</td></tr>
+            `) : ''}
 
-        ${attachments.length > 0 ? section('Kuvat', `
-          <tr><td colspan="2" style="padding:8px 12px;color:#9ca3af;font-size:13px;border-bottom:1px solid #2d2d2d">
-            Raporttiin liitetty ${attachments.length} kuva${attachments.length > 1 ? 'a' : ''} (katso liitteet)
-          </td></tr>
-        `) : ''}
+            ${photos.length > 0 ? section('Kuvat', `
+              <tr><td colspan="2" style="padding:10px 14px;color:#9ca3af;font-size:13px;border-bottom:1px solid #2d2d2d;background:rgba(26,26,26,0.6)">
+                Raporttiin liitetty ${photos.length} kuva${photos.length > 1 ? 'a' : ''} (katso liitteet)
+              </td></tr>
+            `) : ''}
+
+          </table>
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td style="background:rgba(17,17,17,0.85);padding:20px 24px;text-align:center;border-top:1px solid #1e1e1e">
+          <p style="color:#9ca3af;font-size:12px;margin:0 0 4px">MP-Logistiikka · Moottoripyörän kuntotarkastus</p>
+          <p style="color:#6b7280;font-size:11px;margin:0">info@mplogistiikka.fi · mp-logistiikka.fi</p>
+        </td></tr>
 
       </table>
-    </div>
-
-    <!-- Footer -->
-    <div style="background:#0a0a0a;padding:20px 24px;text-align:center;border-top:1px solid #1e1e1e">
-      <p style="color:#6b7280;font-size:12px;margin:0 0 4px">MP-Logistiikka · Moottoripyörän kuntotarkastus</p>
-      <p style="color:#374151;font-size:11px;margin:0">info@mplogistiikka.fi · mp-logistiikka.fi</p>
-    </div>
+    </td></tr>
+  </table>
 
   </div>
 </body>
