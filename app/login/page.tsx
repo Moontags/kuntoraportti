@@ -74,7 +74,7 @@ export default function LoginPage() {
         </button>
       </form>
       <p style={{ color: '#374151', fontSize: 11, textAlign: 'center', marginTop: 40 }}>
-        © 2024 MP-Logistiikka · info@mplogistiikka.fi
+        © 2024 MP-Logistiikka · info@mp-logistiikka.fi
       </p>
     </main>
   )

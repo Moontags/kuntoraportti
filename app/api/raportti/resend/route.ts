@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
         </td></tr>
 
         <tr><td style="background:rgba(17,17,17,0.85);padding:20px 24px;text-align:center;border-top:1px solid #1e1e1e">
-          <p style="color:#9ca3af;font-size:12px;margin:0">MP-Logistiikka · info@mplogistiikka.fi</p>
+          <p style="color:#9ca3af;font-size:12px;margin:0">MP-Logistiikka · info@mp-logistiikka.fi</p>
         </td></tr>
       </table>
     </td></tr>

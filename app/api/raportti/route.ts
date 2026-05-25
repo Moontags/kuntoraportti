@@ -314,7 +314,7 @@ export async function POST(req: NextRequest) {
         <!-- Footer -->
         <tr><td style="background:rgba(17,17,17,0.85);padding:20px 24px;text-align:center;border-top:1px solid #1e1e1e">
           <p style="color:#9ca3af;font-size:12px;margin:0 0 4px">MP-Logistiikka · Moottoripyörän kuntotarkastus</p>
-          <p style="color:#6b7280;font-size:11px;margin:0">info@mplogistiikka.fi · mp-logistiikka.fi</p>
+          <p style="color:#6b7280;font-size:11px;margin:0">info@mp-logistiikka.fi · mp-logistiikka.fi</p>
         </td></tr>
 
       </table>
