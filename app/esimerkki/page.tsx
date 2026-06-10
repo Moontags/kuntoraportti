@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import Header from '@/components/ui/Header'
 import RaporttiNakyma from '@/components/ui/RaporttiNakyma'
 import { esimerkkiraportti } from '@/lib/esimerkkiraportti'
@@ -11,7 +12,22 @@ export const metadata: Metadata = {
 export default function EsimerkkiRaporttiSivu() {
   return (
     <>
-      <Header />
+      <Header
+        rightElement={
+          <Link
+            href="/login"
+            style={{
+              color: '#9ca3af',
+              fontSize: 13,
+              fontWeight: 600,
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Kirjaudu sisään →
+          </Link>
+        }
+      />
 
       {/* Infobanneri — kertoo että kyseessä on esimerkki, ei oikea raportti */}
       <div
